@@ -1,0 +1,38 @@
+<idea-plugin version="2">
+
+    <id>com.demonwav.autosync</id>
+    <name>Auto Sync</name>
+    <vendor>DemonWav</vendor>
+
+    <description><![CDATA[
+      This automates the action of right clicking on a project and clicking synchronize. This can be useful if you need to turn off the
+      IDE's "Auto Synchronize on Frame Activation" due to using network mounted file systems.
+    ]]></description>
+
+    <change-notes>Initial release.</change-notes>
+
+    <depends>com.intellij.modules.lang</depends>
+
+    <!-- please see https://confluence.jetbrains.com/display/IDEADEV/Build+Number+Ranges for description -->
+    <idea-version since-build="163"/>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <projectConfigurable displayName="Auto Sync Settings"
+                             id="Settings.AutoSync"
+                             groupId="appearance"
+                             instance="com.demonwav.autosync.AutoSyncConfigurable"/>
+
+        <projectService serviceImplementation="com.demonwav.autosync.AutoSyncSettings"/>
+    </extensions>
+
+    <application-components>
+    </application-components>
+
+    <project-components>
+        <!-- Application components for Project open listeners -->
+        <component>
+            <implementation-class>com.demonwav.autosync.ProjectOpenListener</implementation-class>
+            <loadForDefaultProject/>
+        </component>
+    </project-components>
+</idea-plugin>
