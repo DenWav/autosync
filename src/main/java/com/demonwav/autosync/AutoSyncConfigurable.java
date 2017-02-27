@@ -3,8 +3,10 @@ package com.demonwav.autosync;
 import com.intellij.openapi.options.Configurable;
 import com.intellij.openapi.options.ConfigurationException;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.wm.WindowManager;
 import javax.swing.JCheckBox;
 import javax.swing.JComponent;
+import javax.swing.JFrame;
 import javax.swing.JPanel;
 import org.jetbrains.annotations.Nls;
 import org.jetbrains.annotations.Nullable;
@@ -46,7 +48,11 @@ public class AutoSyncConfigurable implements Configurable {
     @Override
     public void apply() throws ConfigurationException {
         AutoSyncSettings.getInstance(project).setEnabled(enableCheckBox.isSelected());
-        AutoSyncFrameStateListener.INSTANCE.getProjects().add(project);
+        final JFrame frame = WindowManager.getInstance().getFrame(project);
+        frame.removeWindowFocusListener(AutoSyncFocusListener.INSTANCE); // for good measure
+        if (AutoSyncSettings.getInstance(project).isEnabled()) {
+            frame.addWindowFocusListener(AutoSyncFocusListener.INSTANCE);
+        }
     }
 
     @Override
