@@ -46,6 +46,7 @@ public class AutoSyncConfigurable implements Configurable {
     @Override
     public void apply() throws ConfigurationException {
         AutoSyncSettings.getInstance(project).setEnabled(enableCheckBox.isSelected());
+        AutoSyncFrameStateListener.INSTANCE.getProjects().add(project);
     }
 
     @Override

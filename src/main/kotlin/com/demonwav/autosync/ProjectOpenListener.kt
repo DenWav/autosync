@@ -8,6 +8,7 @@ class ProjectOpenListener(project: Project) : AbstractProjectComponent(project) 
 
     override fun projectOpened() {
         if (AutoSyncSettings.getInstance(myProject).isEnabled) {
+            AutoSyncFrameStateListener.projects.add(myProject)
             // Don't want to add duplicate listeners
             FrameStateManager.getInstance().removeListener(AutoSyncFrameStateListener)
             FrameStateManager.getInstance().addListener(AutoSyncFrameStateListener)
@@ -15,6 +16,9 @@ class ProjectOpenListener(project: Project) : AbstractProjectComponent(project) 
     }
 
     override fun projectClosed() {
-        FrameStateManager.getInstance().removeListener(AutoSyncFrameStateListener)
+        AutoSyncFrameStateListener.projects.remove(myProject)
+        if (AutoSyncFrameStateListener.projects.isEmpty()) {
+            FrameStateManager.getInstance().removeListener(AutoSyncFrameStateListener)
+        }
     }
 }
