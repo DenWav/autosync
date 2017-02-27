@@ -10,8 +10,14 @@ import com.intellij.openapi.vfs.newvfs.RefreshQueue
 import com.intellij.openapi.wm.WindowManager
 import java.awt.event.WindowEvent
 import java.awt.event.WindowFocusListener
+import java.time.Duration
+import java.time.Instant
+import java.util.concurrent.ConcurrentHashMap
 
 object AutoSyncFocusListener : WindowFocusListener {
+
+    val pastSyncs = ConcurrentHashMap<Project, Instant>()
+    val runningSyncs = HashSet<Project>()
 
     override fun windowGainedFocus(e: WindowEvent) {
         val project = WindowManager.getInstance().allProjectFrames.firstOrNull { it === e.component }?.project ?: return
@@ -23,6 +29,19 @@ object AutoSyncFocusListener : WindowFocusListener {
     override fun windowLostFocus(e: WindowEvent) {}
 
     private fun performSync(project: Project) {
+        if (project.isDisposed) {
+            return
+        }
+
+        val time = pastSyncs[project]
+        pastSyncs[project] = Instant.now()
+
+        if (time != null && time.plus(Duration.ofMinutes(AutoSyncSettings.getInstance(project).timeBetweenSyncs)).isAfter(Instant.now())) {
+            pastSyncs[project] = Instant.now()
+            return
+        }
+
+        runningSyncs.add(project)
         runWriteAction {
             (project.baseDir as? NewVirtualFile)?.markDirtyRecursively()
         }
@@ -43,5 +62,6 @@ object AutoSyncFocusListener : WindowFocusListener {
                 StringUtil.escapeMnemonics(StringUtil.firstLast(project.baseDir.name, 20))
             )
         )
+        runningSyncs.remove(project)
     }
 }

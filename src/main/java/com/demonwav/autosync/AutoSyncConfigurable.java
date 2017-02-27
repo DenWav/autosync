@@ -8,15 +8,20 @@ import javax.swing.JCheckBox;
 import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
+import javax.swing.JSpinner;
+import javax.swing.SpinnerNumberModel;
 import org.jetbrains.annotations.Nls;
 import org.jetbrains.annotations.Nullable;
 
 public class AutoSyncConfigurable implements Configurable {
 
+    private static final SpinnerNumberModel model = new SpinnerNumberModel(15, 0, 60, 1);
+
     private final Project project;
 
     private JPanel panel;
     private JCheckBox enableCheckBox;
+    private JSpinner timeSpinner;
 
     public AutoSyncConfigurable(Project project) {
         this.project = project;
@@ -37,26 +42,35 @@ public class AutoSyncConfigurable implements Configurable {
     @Nullable
     @Override
     public JComponent createComponent() {
+        timeSpinner.setModel(model);
         return panel;
     }
 
     @Override
     public boolean isModified() {
-        return AutoSyncSettings.getInstance(project).isEnabled() != enableCheckBox.isSelected();
+        final AutoSyncSettings settings = AutoSyncSettings.getInstance(project);
+        return settings.isEnabled() != enableCheckBox.isSelected() ||
+            settings.getTimeBetweenSyncs() != ((Number) timeSpinner.getValue()).longValue();
     }
 
     @Override
     public void apply() throws ConfigurationException {
-        AutoSyncSettings.getInstance(project).setEnabled(enableCheckBox.isSelected());
+        final AutoSyncSettings settings = AutoSyncSettings.getInstance(project);
+        settings.setEnabled(enableCheckBox.isSelected());
+        settings.setTimeBetweenSyncs(((Number) timeSpinner.getValue()).longValue());
+
         final JFrame frame = WindowManager.getInstance().getFrame(project);
         frame.removeWindowFocusListener(AutoSyncFocusListener.INSTANCE); // for good measure
-        if (AutoSyncSettings.getInstance(project).isEnabled()) {
+
+        if (settings.isEnabled()) {
             frame.addWindowFocusListener(AutoSyncFocusListener.INSTANCE);
         }
     }
 
     @Override
     public void reset() {
-        enableCheckBox.setSelected(AutoSyncSettings.getInstance(project).isEnabled());
+        final AutoSyncSettings settings = AutoSyncSettings.getInstance(project);
+        enableCheckBox.setSelected(settings.isEnabled());
+        timeSpinner.setValue(settings.getTimeBetweenSyncs());
     }
 }

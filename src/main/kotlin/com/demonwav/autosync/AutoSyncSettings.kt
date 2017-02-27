@@ -9,7 +9,7 @@ import com.intellij.openapi.project.Project
 @State(name = "AutoSyncSettings", storages = arrayOf(Storage("auto_sync.xml")))
 class AutoSyncSettings : PersistentStateComponent<AutoSyncSettings.State> {
 
-    data class State(var enabled: Boolean = false)
+    data class State(var enabled: Boolean = false, var timeBetweenSyncs: Long = 15)
 
     private var state = State()
 
@@ -22,6 +22,12 @@ class AutoSyncSettings : PersistentStateComponent<AutoSyncSettings.State> {
         get() = state.enabled
         set(enabled) {
             state.enabled = enabled
+        }
+
+    var timeBetweenSyncs
+        get() = state.timeBetweenSyncs
+        set(timeBetweenSyncs) {
+            state.timeBetweenSyncs = timeBetweenSyncs
         }
 
     companion object {
