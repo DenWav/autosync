@@ -9,7 +9,10 @@ import com.intellij.openapi.project.Project
 @State(name = "AutoSyncSettings", storages = arrayOf(Storage("auto_sync.xml")))
 class AutoSyncSettings : PersistentStateComponent<AutoSyncSettings.State> {
 
-    data class State(var enabled: Boolean = false, var timeBetweenSyncs: Long = 15)
+    data class State(var modified: Boolean = false,
+                     var enabled: Boolean = false,
+                     var timeBetweenSyncs: Long = 15,
+                     var includedDirs: MutableList<String> = mutableListOf())
 
     private var state = State()
 
@@ -17,6 +20,12 @@ class AutoSyncSettings : PersistentStateComponent<AutoSyncSettings.State> {
     override fun loadState(state: State) {
         this.state = state
     }
+
+    var modified
+        get() = state.modified
+        set(modified) {
+            state.modified = modified
+        }
 
     var isEnabled
         get() = state.enabled
@@ -30,8 +39,19 @@ class AutoSyncSettings : PersistentStateComponent<AutoSyncSettings.State> {
             state.timeBetweenSyncs = timeBetweenSyncs
         }
 
+    var excludedUrls
+        get() = state.includedDirs
+        set(excludedUrls) {
+            state.includedDirs = excludedUrls
+        }
+
     companion object {
-        @JvmStatic
-        fun getInstance(project: Project): AutoSyncSettings = ServiceManager.getService(project, AutoSyncSettings::class.java)
+        fun getInstance(project: Project): AutoSyncSettings {
+            val service = ServiceManager.getService(project, AutoSyncSettings::class.java)
+            if (!service.modified && service.excludedUrls.isEmpty()) {
+                service.excludedUrls.add(project.baseDir.url)
+            }
+            return service
+        }
     }
 }

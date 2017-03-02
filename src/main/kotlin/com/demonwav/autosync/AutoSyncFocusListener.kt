@@ -3,8 +3,11 @@ package com.demonwav.autosync
 import com.intellij.ide.IdeBundle
 import com.intellij.openapi.application.runWriteAction
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.util.text.StringUtil
+import com.intellij.openapi.util.text.StringUtil.escapeMnemonics
+import com.intellij.openapi.util.text.StringUtil.firstLast
 import com.intellij.openapi.vcs.changes.VcsDirtyScopeManager
+import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.openapi.vfs.newvfs.NewVirtualFile
 import com.intellij.openapi.vfs.newvfs.RefreshQueue
 import com.intellij.openapi.wm.WindowManager
@@ -21,14 +24,15 @@ object AutoSyncFocusListener : WindowFocusListener {
 
     override fun windowGainedFocus(e: WindowEvent) {
         val project = WindowManager.getInstance().allProjectFrames.firstOrNull { it === e.component }?.project ?: return
-        if (AutoSyncSettings.getInstance(project).isEnabled) {
-            performSync(project)
+        val settings = AutoSyncSettings.getInstance(project)
+        if (settings.isEnabled) {
+            performSync(project, settings)
         }
     }
 
     override fun windowLostFocus(e: WindowEvent) {}
 
-    private fun performSync(project: Project) {
+    private fun performSync(project: Project, settings: AutoSyncSettings) {
         if (project.isDisposed) {
             return
         }
@@ -36,32 +40,49 @@ object AutoSyncFocusListener : WindowFocusListener {
         val time = pastSyncs[project]
         pastSyncs[project] = Instant.now()
 
-        if (time != null && time.plus(Duration.ofMinutes(AutoSyncSettings.getInstance(project).timeBetweenSyncs)).isAfter(Instant.now())) {
+        if (time != null && time.plus(Duration.ofMinutes(settings.timeBetweenSyncs)).isAfter(Instant.now())) {
             pastSyncs[project] = Instant.now()
             return
         }
 
         runningSyncs.add(project)
+        val files = mutableListOf<VirtualFile>()
         runWriteAction {
-            (project.baseDir as? NewVirtualFile)?.markDirtyRecursively()
+            for (url in settings.excludedUrls) {
+                val file = VirtualFileManager.getInstance().findFileByUrl(url) as? NewVirtualFile ?: continue
+                files.add(file)
+                if (file.isDirectory) {
+                    file.markDirtyRecursively()
+                } else {
+                    file.markDirty()
+                }
+            }
         }
 
         RefreshQueue.getInstance().refresh(true, true, Runnable {
-            postRefresh(project)
-        }, project.baseDir)
+            postRefresh(project, files)
+        }, *files.toTypedArray())
     }
 
-    private fun postRefresh(project: Project) {
+    private fun postRefresh(project: Project, files: List<VirtualFile>) {
         val dirtyScopeManager = VcsDirtyScopeManager.getInstance(project)
-        dirtyScopeManager.dirDirtyRecursively(project.baseDir)
+        for (file in files) {
+            if (file.isDirectory) {
+                dirtyScopeManager.dirDirtyRecursively(file)
+            } else {
+                dirtyScopeManager.fileDirty(file)
+            }
+        }
 
         WindowManager.getInstance().getStatusBar(project)?.info = IdeBundle.message(
             "action.sync.completed.successfully",
-            IdeBundle.message(
-                "action.synchronize.file",
-                StringUtil.escapeMnemonics(StringUtil.firstLast(project.baseDir.name, 20))
-            )
+            getMessage(files)
         )
         runningSyncs.remove(project)
+    }
+
+    private fun getMessage(files: List<VirtualFile>): String {
+        return if (files.size == 1) IdeBundle.message("action.synchronize.file", escapeMnemonics(firstLast(files[0].name, 20))) else
+            IdeBundle.message("action.synchronize.selected.files")
     }
 }
