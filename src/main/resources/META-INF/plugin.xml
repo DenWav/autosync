@@ -1,4 +1,4 @@
-<idea-plugin version="2">
+<idea-plugin>
 
     <id>com.demonwav.autosync</id>
     <name>Auto Sync</name>
@@ -14,7 +14,7 @@
     <depends>com.intellij.modules.lang</depends>
 
     <!-- please see https://confluence.jetbrains.com/display/IDEADEV/Build+Number+Ranges for description -->
-    <idea-version since-build="163"/>
+    <idea-version since-build="173"/>
 
     <extensions defaultExtensionNs="com.intellij">
         <projectConfigurable displayName="Auto Sync Settings"

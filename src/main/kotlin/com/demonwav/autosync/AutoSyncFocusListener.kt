@@ -19,8 +19,8 @@ import java.util.concurrent.ConcurrentHashMap
 
 object AutoSyncFocusListener : WindowFocusListener {
 
-    val pastSyncs = ConcurrentHashMap<Project, Instant>()
-    val runningSyncs = HashSet<Project>()
+    private val pastSyncs = ConcurrentHashMap<Project, Instant>()
+    private val runningSyncs = HashSet<Project>()
 
     override fun windowGainedFocus(e: WindowEvent) {
         val project = WindowManager.getInstance().allProjectFrames.firstOrNull { it === e.component }?.project ?: return
@@ -38,10 +38,10 @@ object AutoSyncFocusListener : WindowFocusListener {
         }
 
         val time = pastSyncs[project]
-        pastSyncs[project] = Instant.now()
+        val now = Instant.now()
+        pastSyncs[project] = now
 
-        if (time != null && time.plus(Duration.ofMinutes(settings.timeBetweenSyncs)).isAfter(Instant.now())) {
-            pastSyncs[project] = Instant.now()
+        if (time != null && time.plus(Duration.ofMinutes(settings.timeBetweenSyncs)).isAfter(now)) {
             return
         }
 
@@ -82,7 +82,10 @@ object AutoSyncFocusListener : WindowFocusListener {
     }
 
     private fun getMessage(files: List<VirtualFile>): String {
-        return if (files.size == 1) IdeBundle.message("action.synchronize.file", escapeMnemonics(firstLast(files[0].name, 20))) else
+        return if (files.size == 1) {
+            IdeBundle.message("action.synchronize.file", escapeMnemonics(firstLast(files[0].name, 20)))
+        } else {
             IdeBundle.message("action.synchronize.selected.files")
+        }
     }
 }

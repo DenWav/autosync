@@ -6,7 +6,7 @@ import com.intellij.openapi.components.State
 import com.intellij.openapi.components.Storage
 import com.intellij.openapi.project.Project
 
-@State(name = "AutoSyncSettings", storages = arrayOf(Storage("auto_sync.xml")))
+@State(name = "AutoSyncSettings", storages = [Storage("auto_sync.xml")])
 class AutoSyncSettings : PersistentStateComponent<AutoSyncSettings.State> {
 
     data class State(var modified: Boolean = false,

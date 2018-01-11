@@ -5,23 +5,16 @@ import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory
 import com.intellij.openapi.options.Configurable
 import com.intellij.openapi.options.ConfigurationException
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.roots.ui.CellAppearanceEx
-import com.intellij.openapi.roots.ui.FileAppearanceService
-import com.intellij.openapi.vfs.VirtualFile
-import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.openapi.wm.WindowManager
-import com.intellij.ui.ColoredTableCellRenderer
 import com.intellij.ui.TableUtil
 import com.intellij.ui.ToolbarDecorator
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.table.JBTable
 import com.intellij.util.ArrayUtil
-import com.intellij.util.ui.ItemRemovable
 import com.intellij.util.ui.UIUtil
 import org.jetbrains.annotations.Nls
 import java.awt.BorderLayout
 import java.awt.Dimension
-import javax.swing.BorderFactory
 import javax.swing.JCheckBox
 import javax.swing.JComponent
 import javax.swing.JPanel
@@ -29,7 +22,6 @@ import javax.swing.JSpinner
 import javax.swing.JTable
 import javax.swing.ListSelectionModel
 import javax.swing.SpinnerNumberModel
-import javax.swing.table.DefaultTableModel
 
 class AutoSyncConfigurable(private val project: Project) : Configurable {
 
@@ -76,11 +68,12 @@ class AutoSyncConfigurable(private val project: Project) : Configurable {
         settings.isEnabled = enableCheckBox.isSelected
         settings.timeBetweenSyncs = (timeSpinner.value as Number).toLong()
 
-        val frame = WindowManager.getInstance().getFrame(project)
-        frame.removeWindowFocusListener(AutoSyncFocusListener) // for good measure
+        WindowManager.getInstance().getFrame(project)?.let { frame ->
+            frame.removeWindowFocusListener(AutoSyncFocusListener) // for good measure
 
-        if (settings.isEnabled) {
-            frame.addWindowFocusListener(AutoSyncFocusListener)
+            if (settings.isEnabled) {
+                frame.addWindowFocusListener(AutoSyncFocusListener)
+            }
         }
 
         saveData()
@@ -170,49 +163,5 @@ class AutoSyncConfigurable(private val project: Project) : Configurable {
 
     companion object {
         private val model = SpinnerNumberModel(15, 0, 60, 1)
-    }
-}
-
-class TableModel : DefaultTableModel(), ItemRemovable {
-    override fun getColumnName(column: Int) = null
-    override fun getColumnClass(columnIndex: Int) = TableItem::class.java
-    override fun getColumnCount() = 1
-    override fun isCellEditable(row: Int, column: Int) = false
-    fun getValueAt(row: Int) = getValueAt(row, 0) as TableItem
-    fun addTableItem(item: TableItem) = addRow(arrayOf(item))
-}
-
-class TableItem {
-    val url: String
-    val cellAppearance: CellAppearanceEx
-
-    constructor(file: VirtualFile) {
-        url = file.url
-        cellAppearance = FileAppearanceService.getInstance().forVirtualFile(file)
-    }
-
-    constructor(url: String) {
-        this.url = url
-
-        val file = VirtualFileManager.getInstance().findFileByUrl(url)
-        if (file != null) {
-            cellAppearance = FileAppearanceService.getInstance().forVirtualFile(file)
-        } else {
-            cellAppearance = FileAppearanceService.getInstance().forInvalidUrl(url)
-        }
-    }
-}
-
-class Renderer : ColoredTableCellRenderer() {
-    override fun customizeCellRenderer(table: JTable?, value: Any?, selected: Boolean, hasFocus: Boolean, row: Int, column: Int) {
-        setPaintFocusBorder(false)
-        setFocusBorderAroundIcon(true)
-        border = NO_FOCUS_BORDER
-
-        (value as TableItem).cellAppearance.customize(this)
-    }
-
-    companion object {
-        private val NO_FOCUS_BORDER = BorderFactory.createEmptyBorder(1, 1, 1, 1)
     }
 }
